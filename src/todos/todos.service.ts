@@ -1,16 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { TodoRepository } from './todos.repository';
 import { Todo } from './entities/todo.entity';
-import { TodoRespository } from './todos.repository';
 
 @Injectable()
 export class TodosService {
-  constructor(
-    @InjectRepository(Todo)
-    private todoRepository: TodoRespository,
-  ) {}
+  constructor(private readonly todoRepository: TodoRepository) {}
 
   create(createTodoDto: CreateTodoDto): Promise<Todo> {
     return this.todoRepository.createTodo(createTodoDto);
@@ -20,11 +16,13 @@ export class TodosService {
     return this.todoRepository.getAllTodos();
   }
 
-  update(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
+  update(id: string, updateTodoDto: UpdateTodoDto): Promise<Todo> {
+    // Change from number to string
     return this.todoRepository.updateTodo(id, updateTodoDto);
   }
 
-  remove(id: number): Promise<void> {
+  remove(id: string): Promise<void> {
+    // Change from number to string
     return this.todoRepository.removeTodo(id);
   }
 }

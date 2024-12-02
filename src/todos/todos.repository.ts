@@ -1,25 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { Todo } from './entities/todo.entity';
-import { EntityRepository } from '@mikro-orm/core';
-import { CreateTodoDto } from './dto/create-todo.dto';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 
 @Injectable()
-export class TodoRespository extends EntityRepository<Todo> {
-  async getAllTodos(): Promise<Todo[]> {
-    return await this.findAll();
+export class TodoRepository {
+  private readonly repository: EntityRepository<Todo>;
+
+  constructor(private readonly em: EntityManager) {
+    this.repository = em.getRepository(Todo);
   }
 
-  async createTodo(createTodoDto: CreateTodoDto): Promise<Todo> {
-    const todo = this.create(createTodoDto);
-    await this.em.persist(todo).flush();
+  async getAllTodos(): Promise<Todo[]> {
+    return this.repository.findAll();
+  }
+
+  async createTodo(createTodoDto: any): Promise<Todo> {
+    const todo = this.repository.create(createTodoDto);
+    await this.em.persistAndFlush(todo);
     return todo;
   }
 
-  async updateTodo(
-    id: number,
-    updateTodoDto: Partial<CreateTodoDto>,
-  ): Promise<Todo> {
-    const todo = await this.findOne(id);
+  async updateTodo(id: string, updateTodoDto: any): Promise<Todo> {
+    // Change from number to string
+    const todo = await this.repository.findOne(id);
     if (!todo) {
       throw new Error('Todo not found');
     }
@@ -28,12 +31,12 @@ export class TodoRespository extends EntityRepository<Todo> {
     return todo;
   }
 
-  async removeTodo(id: number): Promise<void> {
-    const todo = await this.findOne(id);
+  async removeTodo(id: string): Promise<void> {
+    // Change from number to string
+    const todo = await this.repository.findOne(id);
     if (!todo) {
       throw new Error('Todo not found');
     }
-
-    this.em.remove(todo).flush();
+    await this.em.removeAndFlush(todo);
   }
 }

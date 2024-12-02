@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Todo WebSocket Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        form input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        form button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            font-size: 16px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        form button:hover {
+            background-color: #218838;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .todo-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.5);
+            cursor: pointer;
+        }
+        .todo-item span {
+            flex: 1;
+            font-size: 18px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .todo-item button {
+            padding: 5px 10px;
+            font-size: 14px;
+            border: none;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .todo-item button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Todos</h1>
+    
+    <form id="todo-form">
+        <input type="text" id="newTodo" placeholder="Add a new todo" required>
+        <button type="submit">Add Todo</button>
+    </form>
+    
+    <div id="todos-list"></div>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3000');
+        const todosList = document.getElementById('todos-list');
+        const todoForm = document.getElementById('todo-form');
+        const newTodoInput = document.getElementById('newTodo');
+
+        // Request all todos when connected
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server');
+            socket.emit('findAllTodos');
+        });
+
+        // Listen for todos
+        socket.on('todos', (todos) => {
+            console.log('Received todos:', todos);
+            renderTodos(todos);
+        });
+
+        // Listen for todo creation
+        socket.on('todoCreated', (todo) => {
+            console.log('Todo Created:', todo);
+            socket.emit('findAllTodos');
+        });
+
+        // Listen for todo updates
+        socket.on('todoUpdated', (todo) => {
+            console.log('Todo Updated:', todo);
+            socket.emit('findAllTodos');
+        });
+
+        // Listen for todo removals
+        socket.on('todoRemoved', (id) => {
+            console.log('Todo Removed:', id);
+            socket.emit('findAllTodos');
+        });
+
+        // Handle form submission to create a new todo
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = newTodoInput.value.trim();
+            if (title) {
+                socket.emit('createTodo', { title });
+                newTodoInput.value = '';
+            }
+        });
+
+        // Render todos in the DOM
+        function renderTodos(todos) {
+            todosList.innerHTML = todos.map(todo => `
+                <div class="todo-item">
+                    <input type="checkbox" 
+                           ${todo.completed ? 'checked' : ''} 
+                           onchange="updateTodo('${todo.id}', this.checked)">
+                    <span class="${todo.completed ? 'completed' : ''}">${todo.title}</span>
+                    <button onclick="removeTodo('${todo.id}')">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        // Update a todo's completion status
+        function updateTodo(id, completed) {
+            socket.emit('updateTodo', { id, completed });
+        }
+
+        // Remove a todo
+        function removeTodo(id) {
+            socket.emit('removeTodo', id);
+        }
+    </script>
+</body>
+</html>
